@@ -1,0 +1,6 @@
+*.xml
+PDFEJEMPLO
+.venv
+Programa.ipynb
+Reportes
+plantillas/scribus
