@@ -780,12 +780,16 @@ class Xml_a_pdf:
         ## se busca el archivo y se descomprime
         treeR = self.cargar_observaciones_xml(archivo)
         
-        rootR = treeR.getroot()
-        observaciones = rootR.find('.//cac:DocumentResponse//cbc:Description', namespaces).text
-        print(f'observaciones: {observaciones}')
+        if treeR != None:
+            rootR = treeR.getroot()
+            observaciones = rootR.find('.//cac:DocumentResponse//cbc:Description', namespaces).text
+            print(f'observaciones: {observaciones}')
+        else:
+            observaciones = '0'
         
         # Informacion Adicional
         additional_properties = root.findall('.//ext:ExtensionContent//biz:AdditionalProperty', namespaces)
+            
         additional_data = []
         direccionSucursal = self.peaje_nombres.get(doc[1]) if self.peaje_nombres.get(doc[1]) != None else '0'
         observacion = 'MANEJE CON CUIDADO SU VIDA ES MUY VALIOSA'
