@@ -408,6 +408,7 @@ class Xml_a_pdf:
         # Verificar si existe el elemento cac:DiscrepancyResponse para saber si el documento
         # es nota de debito o credito
         discrepancy_response = root.find('cac:DiscrepancyResponse', namespaces)
+        tipoDoc = root.find('cbc:InvoiceTypeCode', namespaces).text
 
         # Comprobar si el elemento existe
         if discrepancy_response is not None:
@@ -421,8 +422,8 @@ class Xml_a_pdf:
                 tipoDoc = '08'
             elif list_name in ['Tipo de nota de credito', 'Tipo de nota de crédito']:
                 tipoDoc = '07'
-        else:
-            tipoDoc = root.find('cbc:InvoiceTypeCode', namespaces).text
+        if tipoDoc is None:
+            tipoDoc = root.find('cbc:DocumentTypeCode', namespaces).text
 
         match tipoDoc:
             case '01':
