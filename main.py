@@ -324,7 +324,6 @@ class Xml_a_pdf:
                 page.set_form_field_value("nombre", datos_formulario['nombre'])
                 page.set_form_field_value("fecha", datos_formulario['fecha'])
                 page.set_form_field_value("documento", datos_formulario['documento'])
-                page.set_form_field_value("direccion", datos_formulario['direccion'])
                 page.set_form_field_value("item", datos_formulario['item'])
                 page.set_form_field_value("codigo", datos_formulario['codigo'])
                 page.set_form_field_value("descripcion", datos_formulario['descripcion'])
@@ -425,8 +424,8 @@ class Xml_a_pdf:
         if tipoDoc is not None:
             tipoDoc = tipoDoc.text
         else:    
-            tipoDoc = root.find('cbc:DocumentTypeCode', namespaces).text
-
+            tipoDoc = root.find('.//cbc:DocumentTypeCode', namespaces).text
+            
         match tipoDoc:
             case '01':
                 self.procesar_factura(root, archivo)
@@ -854,9 +853,15 @@ class Xml_a_pdf:
         
         # Fecha y Hora
         date = root.find("cbc:IssueDate", namespaces).text
-        time = root.find("cbc:IssueTime", namespaces).text
+        time = root.find("cbc:IssueTime", namespaces)
+        
         # datetime.strptime(date.text, '%Y-%m-%d')
-        fechaEmision = f"{date} {time}"
+        if time is not None:
+            time = time.text
+            fechaEmision = f"{date} {time}"
+        else:
+            fechaEmision = f"{date}"
+            
         print(f"Fecha emision: {fechaEmision}")
 
         # Código Hash
@@ -1002,7 +1007,11 @@ class Xml_a_pdf:
 
             # Si no se encuentra el archivo XML, buscar un archivo comprimido en la misma carpeta
             archivo_zip = carpeta_base / f"{archivoR}.zip"
-
+            archivo_xml = carpeta_base / f"{archivoR}.xml"
+            if archivo_xml.exists():
+                treeR = ET.parse(archivo_xml)
+                print(f"Archivo XML encontrado y cargado: {archivo_xml}")
+                return treeR
             if archivo_zip.exists():
                 print(f"Archivo comprimido encontrado: {archivo_zip}")
                 
