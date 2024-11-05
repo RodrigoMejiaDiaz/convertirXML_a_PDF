@@ -23,6 +23,8 @@ class Xml_a_pdf:
         
         self.archivosXML = []
         
+        self.errores = []
+        
         # Variable para almacenar el progreso de la barra de carga General
         self.progresoGeneral = 0
         
@@ -233,40 +235,104 @@ class Xml_a_pdf:
             self.ventana_carpeta_generada('./Reportes/')
         
         self.btnConvertir.state(['!disabled'])
+        
+        if self.errores:
+            print(f"Hubo errores en los archivos: ")
+            for e in self.errores:
+                print("\n")
+                print(e)
 
     # Función para copiar y luego rellenar el PDF
     def rellenar_plantilla(self, plantilla, datos_formulario, nombreArchivo, tipoDoc):
-        carpeta_destino = f'./Reportes/{nombreArchivo}'
-        # Verificar si la carpeta de destino existe, si no, crearla
-        if not os.path.exists(carpeta_destino):
-            os.makedirs(carpeta_destino)
+        try:
+            carpeta_destino = f'./Reportes/{nombreArchivo}'
+            # Verificar si la carpeta de destino existe, si no, crearla
+            if not os.path.exists(carpeta_destino):
+                os.makedirs(carpeta_destino)
 
-        # Crear la ruta completa del archivo con el nombre personalizado
-        archivo_destino = Path(carpeta_destino) / f"{nombreArchivo}.pdf"
+            # Crear la ruta completa del archivo con el nombre personalizado
+            archivo_destino = Path(carpeta_destino) / f"{nombreArchivo}.pdf"
 
-        # Hacer una copia del archivo PDF con el nombre personalizado
-        shutil.copy2(f'./plantillas/{plantilla}', archivo_destino)
-        print(f"Archivo copiado a: {archivo_destino}")
+            # Hacer una copia del archivo PDF con el nombre personalizado
+            shutil.copy2(f'./plantillas/{plantilla}', archivo_destino)
+            print(f"Archivo copiado a: {archivo_destino}")
 
-        # Abrir la copia del PDF
-        doc: typing.Optional[Document] = None
-        with open(archivo_destino, "rb") as pdf_file_handle:
-            doc = PDF.loads(pdf_file_handle)
-        assert doc is not None
-        
-        # # Obtener la primera página
-        page = doc.get_page(0)
+            # Abrir la copia del PDF
+            doc: typing.Optional[Document] = None
+            with open(archivo_destino, "rb") as pdf_file_handle:
+                doc = PDF.loads(pdf_file_handle)
+            assert doc is not None
+            
+            # # Obtener la primera página
+            page = doc.get_page(0)
 
-        match tipoDoc:
-            case '01':
-                if datos_formulario['nota_detracciones'] != '0':
-                    # Rellenar los campos del formulario en la copia
+            match tipoDoc:
+                case '01':
+                    if datos_formulario['nota_detracciones'] != '0':
+                        # Rellenar los campos del formulario en la copia
+                        page.set_form_field_value("doc", datos_formulario['doc'])
+                        page.set_form_field_value("nombre", datos_formulario['nombre'])
+                        page.set_form_field_value("fecha", datos_formulario['fecha'])
+                        page.set_form_field_value("documento", datos_formulario['documento'])
+                        page.set_form_field_value("direccion", datos_formulario['direccion'])
+                        page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
+                        page.set_form_field_value("item", datos_formulario['item'])
+                        page.set_form_field_value("codigo", datos_formulario['codigo'])
+                        page.set_form_field_value("descripcion", datos_formulario['descripcion'])
+                        page.set_form_field_value("und", datos_formulario['und'])
+                        page.set_form_field_value("cantidad", datos_formulario['cantidad'])
+                        page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
+                        page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
+                        page.set_form_field_value("valorV", datos_formulario['valorV'])
+                        page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
+                        page.set_form_field_value("opGravada", datos_formulario['opGravada'])
+                        page.set_form_field_value("igv", datos_formulario['igv'])
+                        page.set_form_field_value("total", datos_formulario['total'])
+                        page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
+                        page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
+                        page.set_form_field_value("nota_detracciones", datos_formulario['nota_detracciones'])
+                        if datos_formulario['comentario'] != '0':
+                            page.set_form_field_value("observacion", datos_formulario['comentario'])
+                        else:
+                            page.set_form_field_value("observacion", datos_formulario['observacion'])
+                        page.set_form_field_value("placa", datos_formulario['placa'])
+                        page.set_form_field_value("hash", datos_formulario['hash'])
+                        page.set_form_field_value("ruc", datos_formulario['ruc'])
+                    else:
+                        # Rellenar los campos del formulario en la copia
+                        page.set_form_field_value("doc", datos_formulario['doc'])
+                        page.set_form_field_value("nombre", datos_formulario['nombre'])
+                        page.set_form_field_value("fecha", datos_formulario['fecha'])
+                        page.set_form_field_value("documento", datos_formulario['documento'])
+                        page.set_form_field_value("direccion", datos_formulario['direccion'])
+                        page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
+                        page.set_form_field_value("item", datos_formulario['item'])
+                        page.set_form_field_value("codigo", datos_formulario['codigo'])
+                        page.set_form_field_value("descripcion", datos_formulario['descripcion'])
+                        page.set_form_field_value("und", datos_formulario['und'])
+                        page.set_form_field_value("cantidad", datos_formulario['cantidad'])
+                        page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
+                        page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
+                        page.set_form_field_value("valorV", datos_formulario['valorV'])
+                        page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
+                        page.set_form_field_value("opGravada", datos_formulario['opGravada'])
+                        page.set_form_field_value("igv", datos_formulario['igv'])
+                        page.set_form_field_value("total", datos_formulario['total'])
+                        page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
+                        page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
+                        if datos_formulario['comentario'] != '0':
+                            page.set_form_field_value("observacion", datos_formulario['comentario'])
+                        else:
+                            page.set_form_field_value("observacion", datos_formulario['observacion'])
+                        page.set_form_field_value("placa", datos_formulario['placa'])
+                        page.set_form_field_value("hash", datos_formulario['hash'])
+                        page.set_form_field_value("ruc", datos_formulario['ruc'])
+                        
+                case '03':
                     page.set_form_field_value("doc", datos_formulario['doc'])
                     page.set_form_field_value("nombre", datos_formulario['nombre'])
                     page.set_form_field_value("fecha", datos_formulario['fecha'])
                     page.set_form_field_value("documento", datos_formulario['documento'])
-                    page.set_form_field_value("direccion", datos_formulario['direccion'])
-                    page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
                     page.set_form_field_value("item", datos_formulario['item'])
                     page.set_form_field_value("codigo", datos_formulario['codigo'])
                     page.set_form_field_value("descripcion", datos_formulario['descripcion'])
@@ -281,22 +347,18 @@ class Xml_a_pdf:
                     page.set_form_field_value("total", datos_formulario['total'])
                     page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
                     page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                    page.set_form_field_value("nota_detracciones", datos_formulario['nota_detracciones'])
-                    if datos_formulario['comentario'] != '0':
-                        page.set_form_field_value("observacion", datos_formulario['comentario'])
-                    else:
-                        page.set_form_field_value("observacion", datos_formulario['observacion'])
+                    page.set_form_field_value("observacion", datos_formulario['observacion'])
                     page.set_form_field_value("placa", datos_formulario['placa'])
                     page.set_form_field_value("hash", datos_formulario['hash'])
                     page.set_form_field_value("ruc", datos_formulario['ruc'])
-                else:
-                    # Rellenar los campos del formulario en la copia
+                
+                case '07':
                     page.set_form_field_value("doc", datos_formulario['doc'])
                     page.set_form_field_value("nombre", datos_formulario['nombre'])
                     page.set_form_field_value("fecha", datos_formulario['fecha'])
                     page.set_form_field_value("documento", datos_formulario['documento'])
                     page.set_form_field_value("direccion", datos_formulario['direccion'])
-                    page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
+                    page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
                     page.set_form_field_value("item", datos_formulario['item'])
                     page.set_form_field_value("codigo", datos_formulario['codigo'])
                     page.set_form_field_value("descripcion", datos_formulario['descripcion'])
@@ -310,90 +372,43 @@ class Xml_a_pdf:
                     page.set_form_field_value("igv", datos_formulario['igv'])
                     page.set_form_field_value("total", datos_formulario['total'])
                     page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                    page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                    if datos_formulario['comentario'] != '0':
-                        page.set_form_field_value("observacion", datos_formulario['comentario'])
-                    else:
-                        page.set_form_field_value("observacion", datos_formulario['observacion'])
-                    page.set_form_field_value("placa", datos_formulario['placa'])
+                    page.set_form_field_value("motivo", datos_formulario['motivo'])
                     page.set_form_field_value("hash", datos_formulario['hash'])
                     page.set_form_field_value("ruc", datos_formulario['ruc'])
-                    
-            case '03':
-                page.set_form_field_value("doc", datos_formulario['doc'])
-                page.set_form_field_value("nombre", datos_formulario['nombre'])
-                page.set_form_field_value("fecha", datos_formulario['fecha'])
-                page.set_form_field_value("documento", datos_formulario['documento'])
-                page.set_form_field_value("item", datos_formulario['item'])
-                page.set_form_field_value("codigo", datos_formulario['codigo'])
-                page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                page.set_form_field_value("und", datos_formulario['und'])
-                page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                page.set_form_field_value("valorV", datos_formulario['valorV'])
-                page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                page.set_form_field_value("igv", datos_formulario['igv'])
-                page.set_form_field_value("total", datos_formulario['total'])
-                page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                page.set_form_field_value("observacion", datos_formulario['observacion'])
-                page.set_form_field_value("placa", datos_formulario['placa'])
-                page.set_form_field_value("hash", datos_formulario['hash'])
-                page.set_form_field_value("ruc", datos_formulario['ruc'])
+                
+                case '08':
+                    page.set_form_field_value("doc", datos_formulario['doc'])
+                    page.set_form_field_value("nombre", datos_formulario['nombre'])
+                    page.set_form_field_value("fecha", datos_formulario['fecha'])
+                    page.set_form_field_value("documento", datos_formulario['documento'])
+                    page.set_form_field_value("direccion", datos_formulario['direccion'])
+                    page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
+                    page.set_form_field_value("item", datos_formulario['item'])
+                    page.set_form_field_value("codigo", datos_formulario['codigo'])
+                    page.set_form_field_value("descripcion", datos_formulario['descripcion'])
+                    page.set_form_field_value("und", datos_formulario['und'])
+                    page.set_form_field_value("cantidad", datos_formulario['cantidad'])
+                    page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
+                    page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
+                    page.set_form_field_value("valorV", datos_formulario['valorV'])
+                    page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
+                    page.set_form_field_value("opGravada", datos_formulario['opGravada'])
+                    page.set_form_field_value("igv", datos_formulario['igv'])
+                    page.set_form_field_value("total", datos_formulario['total'])
+                    page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
+                    page.set_form_field_value("motivo", datos_formulario['motivo'])
+                    page.set_form_field_value("hash", datos_formulario['hash'])
+                    page.set_form_field_value("ruc", datos_formulario['ruc'])
             
-            case '07':
-                page.set_form_field_value("doc", datos_formulario['doc'])
-                page.set_form_field_value("nombre", datos_formulario['nombre'])
-                page.set_form_field_value("fecha", datos_formulario['fecha'])
-                page.set_form_field_value("documento", datos_formulario['documento'])
-                page.set_form_field_value("direccion", datos_formulario['direccion'])
-                page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
-                page.set_form_field_value("item", datos_formulario['item'])
-                page.set_form_field_value("codigo", datos_formulario['codigo'])
-                page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                page.set_form_field_value("und", datos_formulario['und'])
-                page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                page.set_form_field_value("valorV", datos_formulario['valorV'])
-                page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                page.set_form_field_value("igv", datos_formulario['igv'])
-                page.set_form_field_value("total", datos_formulario['total'])
-                page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                page.set_form_field_value("motivo", datos_formulario['motivo'])
-                page.set_form_field_value("hash", datos_formulario['hash'])
-                page.set_form_field_value("ruc", datos_formulario['ruc'])
+            # Guardar el PDF rellenado
+            with open(archivo_destino, "wb") as pdf_file_handle:
+                PDF.dumps(pdf_file_handle, doc)
+        except Exception as e:
+            print(f"Error en el archivo: {nombreArchivo}")
+            print(e)
             
-            case '08':
-                page.set_form_field_value("doc", datos_formulario['doc'])
-                page.set_form_field_value("nombre", datos_formulario['nombre'])
-                page.set_form_field_value("fecha", datos_formulario['fecha'])
-                page.set_form_field_value("documento", datos_formulario['documento'])
-                page.set_form_field_value("direccion", datos_formulario['direccion'])
-                page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
-                page.set_form_field_value("item", datos_formulario['item'])
-                page.set_form_field_value("codigo", datos_formulario['codigo'])
-                page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                page.set_form_field_value("und", datos_formulario['und'])
-                page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                page.set_form_field_value("valorV", datos_formulario['valorV'])
-                page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                page.set_form_field_value("igv", datos_formulario['igv'])
-                page.set_form_field_value("total", datos_formulario['total'])
-                page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                page.set_form_field_value("motivo", datos_formulario['motivo'])
-                page.set_form_field_value("hash", datos_formulario['hash'])
-                page.set_form_field_value("ruc", datos_formulario['ruc'])
+            self.errores.append(nombreArchivo)
         
-        # Guardar el PDF rellenado
-        with open(archivo_destino, "wb") as pdf_file_handle:
-            PDF.dumps(pdf_file_handle, doc)
     
     def leer_XML(self, archivo):
         tree = ET.parse(archivo)
