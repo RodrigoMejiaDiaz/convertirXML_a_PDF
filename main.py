@@ -1,21 +1,13 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import shutil
-import typing
-from borb.pdf import Document, PDF
 import os
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 import threading
 import zipfile
-# from borb.pdf import Table, TableCell
-# from borb.pdf import Paragraph
-# from borb.pdf import SingleColumnLayoutWithOverflow
-# from borb.pdf import PageLayout
-# from borb.pdf.canvas.geometry.rectangle import Rectangle
-# from decimal import Decimal
-
+from fillpdf import fillpdfs
 
 class Xml_a_pdf:
     def __init__(self, root):
@@ -24,6 +16,28 @@ class Xml_a_pdf:
         self.archivosXML = []
         
         self.errores = []
+        
+        self.carpeta_destino = ""
+        
+        self.numerosTexto = {
+            '32.00': 'Son: Treinta y dos con 00/100. Soles',
+            '30.70': 'Son: Treinta con 70/100. Soles',
+            '28.00': 'Son: Veintiocho con 00/100. Soles',
+            '26.90': 'Son: Veintiséis con 90/100. Soles',
+            '23.10': 'Son: Veintitrés con 10/100. Soles',
+            '20.00': 'Son: Veinte con 00/100. Soles',
+            '19.20': 'Son: Diesinueve con 20/100. Soles',
+            '16.00': 'Son: Dieciséis con 00/100. Soles',
+            '15.40': 'Son: Quince con 40/100. Soles',
+            '12.00': 'Son: Doce con 00/100. Soles',
+            '11.60': 'Son: Once con 60/100. Soles',
+            '8.00': 'Son: Ocho con 00/100. Soles',
+            '7.70': 'Son: Siete con 70/100. Soles',
+            '5.00': 'Son: Cinco con 00/100. Soles',
+            '3.90': 'Son: Tres con 90/100. Soles',
+            '1.20': 'Son: Uno con 20/100. Soles',
+            '0.60': 'Son: Cero con 60/100. Soles'
+        }
         
         # Variable para almacenar el progreso de la barra de carga General
         self.progresoGeneral = 0
@@ -59,7 +73,7 @@ class Xml_a_pdf:
         # Añadir los widgets a utilizar y ubicarlos en el grid
         lblArchivoXML = ttk.Label(mainframe, text="Selecciona los archivos XML:", wraplength=100)
         
-        self.btnSeleccionarXML = ttk.Button(mainframe, text="Seleccionar XML", command=self.seleccionarArchivosXML)
+        self.btnSeleccionarXML = ttk.Button(mainframe, text="Seleccionar XML", command=self.seleccionarCarpeta_o_ArchivosXML)
         
         # Variable para almacenar estado de archivo seleccionado
         self.estaSeleccionadoXML = StringVar()
@@ -143,6 +157,7 @@ class Xml_a_pdf:
     
     # Función para reiniciar el progreso de la barra General       
     def reiniciar_progresoGeneral(self):
+        self.carpeta_destino = ""
         # Reiniciar la variable de progresoGeneral
         self.progresoGeneral = 0
         # Actualizar la barra de progreso
@@ -158,36 +173,73 @@ class Xml_a_pdf:
             self.btnConvertir.state(['disabled'])
 
     # Función para abrir ventana emergente para seleccionar los archivos
-    def seleccionarArchivosXML(self):
-        # Abrir ventana emergente para seleccionar los archivos excel a subir
-        self.archivosXML = filedialog.askopenfilenames(filetypes=[("Archivos XML", "*.xml")])
+    def seleccionarCarpeta_o_ArchivosXML(self):
         
-        # Comprobar si se han seleccionado archivos
-        if self.archivosXML:
+        # Preguntar al usuario si quiere seleccionar una carpeta o archivos
+        opcion = messagebox.askquestion(
+            "Seleccionar",
+            "¿Deseas seleccionar XML de una carpeta o archivos separados?",
+            icon="question"
+        )
         
-            if len(self.archivosXML) == 1:
-                archivosXML = Path(self.archivosXML[0])
-                
-                # Cambiar color al label a negro en caso de que este en rojo
-                self.lblCargadosXML.config(foreground="black")
-                
-                print("Archivos seleccionados:", self.archivosXML)
-                
-                # Cambiar el valor de la etiqueta a 'estaSeleccionado'
-                self.estaSeleccionadoXML.set(f"Archivo Seleccionado: {archivosXML.stem} ")
+        # Seleccionar archivos XML o carpeta según la respuesta del usuario
+        if opcion == "yes":  # Si elige 'Sí', selecciona una carpeta
+            # Abrir ventana para seleccionar carpeta
+            carpeta = filedialog.askdirectory(title="Seleccionar carpeta")
             
+            # Comprobar si se ha seleccionado una carpeta
+            if carpeta:
+                carpeta_path = Path(carpeta)
+                self.carpeta_destino = f"./Reportes/{carpeta_path.name}"
+                
+                # Guardar todos los archivos XML en un array
+                self.archivosXML = [archivo for archivo in carpeta_path.glob("*.xml") if not archivo.name.startswith("R-")]
+                
+                if self.archivosXML:
+                    # Cambiar color al label a negro en caso de que este en rojo
+                    self.lblCargadosXML.config(foreground="black")
+                    
+                    print("Archivos seleccionados:", len(self.archivosXML))
+                    
+                    # Cambiar el valor de la etiqueta a 'estaSeleccionado'
+                    self.estaSeleccionadoXML.set(f"Archivos Seleccionados: {len(self.archivosXML)} archivos")
+                else:
+                    self.estaSeleccionadoXML.set("No se encontraron archivos XML en la carpeta seleccionada")
+                    self.lblCargadosXML.config(foreground="red")
             else:
-                # Cambiar color al label a negro en caso de que este en rojo
-                self.lblCargadosXML.config(foreground="black")
-                
-                print("Archivos seleccionados:", self.archivosXML)
-                
-                # Cambiar el valor de la etiqueta a 'estaSeleccionado'
-                self.estaSeleccionadoXML.set(f"Archivos Seleccionados: {len(self.archivosXML)} archivos")
-                
+                self.estaSeleccionadoXML.set("No se seleccionó ninguna carpeta")
+                self.lblCargadosXML.config(foreground="red")
         else:
-            self.estaSeleccionadoXML.set("No se seleccionó archivo")
-            self.lblCargadosXML.config(foreground="red")
+        
+            # Abrir ventana emergente para seleccionar los archivos excel a subir
+            self.archivosXML = filedialog.askopenfilenames(filetypes=[("Archivos XML", "*.xml")])
+            
+            # Comprobar si se han seleccionado archivos
+            if self.archivosXML:
+            
+                if len(self.archivosXML) == 1:
+                    archivosXML = Path(self.archivosXML[0])
+                    
+                    # Cambiar color al label a negro en caso de que este en rojo
+                    self.lblCargadosXML.config(foreground="black")
+                    
+                    print("Archivos seleccionados:", self.archivosXML)
+                    
+                    # Cambiar el valor de la etiqueta a 'estaSeleccionado'
+                    self.estaSeleccionadoXML.set(f"Archivo Seleccionado: {archivosXML.stem} ")
+                
+                else:
+                    # Cambiar color al label a negro en caso de que este en rojo
+                    self.lblCargadosXML.config(foreground="black")
+                    
+                    print("Archivos seleccionados:", self.archivosXML)
+                    
+                    # Cambiar el valor de la etiqueta a 'estaSeleccionado'
+                    self.estaSeleccionadoXML.set(f"Archivos Seleccionados: {len(self.archivosXML)} archivos")
+                    
+            else:
+                self.estaSeleccionadoXML.set("No se seleccionó archivo")
+                self.lblCargadosXML.config(foreground="red")
     
     def btnConvertir_handler(self):
         # Limpiar diccionario
@@ -232,7 +284,10 @@ class Xml_a_pdf:
             # Abrir ventana para abrir carpeta
             self.ventana_carpeta_generada(f'./Reportes/{nombreArchivo}/')
         else:
-            self.ventana_carpeta_generada('./Reportes/')
+            if self.carpeta_destino != "":
+                self.ventana_carpeta_generada(f'{self.carpeta_destino}/')
+            else:
+                self.ventana_carpeta_generada('./Reportes/')
         
         self.btnConvertir.state(['!disabled'])
         
@@ -245,164 +300,168 @@ class Xml_a_pdf:
     # Función para copiar y luego rellenar el PDF
     def rellenar_plantilla(self, plantilla, datos_formulario, nombreArchivo, tipoDoc):
         try:
-            carpeta_destino = f'./Reportes/{nombreArchivo}'
+            self.carpeta_destino = f'./Reportes/{nombreArchivo}' if self.carpeta_destino == "" else self.carpeta_destino
             # Verificar si la carpeta de destino existe, si no, crearla
-            if not os.path.exists(carpeta_destino):
-                os.makedirs(carpeta_destino)
+            if not os.path.exists(self.carpeta_destino):
+                os.makedirs(self.carpeta_destino)
 
             # Crear la ruta completa del archivo con el nombre personalizado
-            archivo_destino = Path(carpeta_destino) / f"{nombreArchivo}.pdf"
-
-            # Hacer una copia del archivo PDF con el nombre personalizado
-            shutil.copy2(f'./plantillas/{plantilla}', archivo_destino)
-            print(f"Archivo copiado a: {archivo_destino}")
-
-            # Abrir la copia del PDF
-            doc: typing.Optional[Document] = None
-            with open(archivo_destino, "rb") as pdf_file_handle:
-                doc = PDF.loads(pdf_file_handle)
-            assert doc is not None
+            archivo_destino = Path(self.carpeta_destino) / f"{nombreArchivo}.pdf"
             
-            # # Obtener la primera página
-            page = doc.get_page(0)
+            if not archivo_destino.exists():
 
-            match tipoDoc:
-                case '01':
-                    if datos_formulario['nota_detracciones'] != '0':
-                        # Rellenar los campos del formulario en la copia
-                        page.set_form_field_value("doc", datos_formulario['doc'])
-                        page.set_form_field_value("nombre", datos_formulario['nombre'])
-                        page.set_form_field_value("fecha", datos_formulario['fecha'])
-                        page.set_form_field_value("documento", datos_formulario['documento'])
-                        page.set_form_field_value("direccion", datos_formulario['direccion'])
-                        page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
-                        page.set_form_field_value("item", datos_formulario['item'])
-                        page.set_form_field_value("codigo", datos_formulario['codigo'])
-                        page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                        page.set_form_field_value("und", datos_formulario['und'])
-                        page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                        page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                        page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                        page.set_form_field_value("valorV", datos_formulario['valorV'])
-                        page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                        page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                        page.set_form_field_value("igv", datos_formulario['igv'])
-                        page.set_form_field_value("total", datos_formulario['total'])
-                        page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                        page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                        page.set_form_field_value("nota_detracciones", datos_formulario['nota_detracciones'])
-                        if datos_formulario['comentario'] != '0':
-                            page.set_form_field_value("observacion", datos_formulario['comentario'])
+                form_fields = list(fillpdfs.get_form_fields(f'./plantillas/{plantilla}').keys())
+
+                match tipoDoc:
+                    case '01':
+                        if datos_formulario['nota_detracciones'] != '0':
+                            
+                            if datos_formulario['comentario'] != '0':
+                                observacion =  datos_formulario['comentario']
+                            else:
+                                observacion = datos_formulario['observacion']
+                                    
+                            data_dict = {
+                                # Rellenar los campos del formulario en la copia
+                                form_fields[2]: datos_formulario['doc'],
+                                form_fields[0]: datos_formulario['nombre'],
+                                form_fields[3]: datos_formulario['fecha'],
+                                form_fields[1]: datos_formulario['documento'],
+                                form_fields[24]: datos_formulario['direccion'],
+                                form_fields[4]: datos_formulario['forma_pago'],
+                                form_fields[6]: datos_formulario['item'],
+                                form_fields[8]: datos_formulario['codigo'],
+                                form_fields[7]: datos_formulario['descripcion'],
+                                form_fields[5]: datos_formulario['und'],
+                                form_fields[9]: datos_formulario['cantidad'],
+                                form_fields[10]: datos_formulario['vUnitario'],
+                                form_fields[11]: datos_formulario['pUnitario'],
+                                form_fields[12]: datos_formulario['valorV'],
+                                form_fields[22]: datos_formulario['numeroTexto'],
+                                form_fields[14]: datos_formulario['opGravada'],
+                                form_fields[15]: datos_formulario['igv'],
+                                form_fields[13]: datos_formulario['total'],
+                                form_fields[16]: datos_formulario['observacionesSunat'],
+                                form_fields[18]: datos_formulario['direccionSucursal'],
+                                form_fields[19]: datos_formulario['nota_detracciones'],
+                                form_fields[17]: observacion,
+                                form_fields[20]: datos_formulario['placa'],
+                                form_fields[21]: datos_formulario['hash'],
+                                form_fields[23]: datos_formulario['ruc'],
+                            }
+                            
                         else:
-                            page.set_form_field_value("observacion", datos_formulario['observacion'])
-                        page.set_form_field_value("placa", datos_formulario['placa'])
-                        page.set_form_field_value("hash", datos_formulario['hash'])
-                        page.set_form_field_value("ruc", datos_formulario['ruc'])
-                    else:
-                        # Rellenar los campos del formulario en la copia
-                        page.set_form_field_value("doc", datos_formulario['doc'])
-                        page.set_form_field_value("nombre", datos_formulario['nombre'])
-                        page.set_form_field_value("fecha", datos_formulario['fecha'])
-                        page.set_form_field_value("documento", datos_formulario['documento'])
-                        page.set_form_field_value("direccion", datos_formulario['direccion'])
-                        page.set_form_field_value('forma_pago', datos_formulario['forma_pago'])
-                        page.set_form_field_value("item", datos_formulario['item'])
-                        page.set_form_field_value("codigo", datos_formulario['codigo'])
-                        page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                        page.set_form_field_value("und", datos_formulario['und'])
-                        page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                        page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                        page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                        page.set_form_field_value("valorV", datos_formulario['valorV'])
-                        page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                        page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                        page.set_form_field_value("igv", datos_formulario['igv'])
-                        page.set_form_field_value("total", datos_formulario['total'])
-                        page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                        page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                        if datos_formulario['comentario'] != '0':
-                            page.set_form_field_value("observacion", datos_formulario['comentario'])
-                        else:
-                            page.set_form_field_value("observacion", datos_formulario['observacion'])
-                        page.set_form_field_value("placa", datos_formulario['placa'])
-                        page.set_form_field_value("hash", datos_formulario['hash'])
-                        page.set_form_field_value("ruc", datos_formulario['ruc'])
-                        
-                case '03':
-                    page.set_form_field_value("doc", datos_formulario['doc'])
-                    page.set_form_field_value("nombre", datos_formulario['nombre'])
-                    page.set_form_field_value("fecha", datos_formulario['fecha'])
-                    page.set_form_field_value("documento", datos_formulario['documento'])
-                    page.set_form_field_value("item", datos_formulario['item'])
-                    page.set_form_field_value("codigo", datos_formulario['codigo'])
-                    page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                    page.set_form_field_value("und", datos_formulario['und'])
-                    page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                    page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                    page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                    page.set_form_field_value("valorV", datos_formulario['valorV'])
-                    page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                    page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                    page.set_form_field_value("igv", datos_formulario['igv'])
-                    page.set_form_field_value("total", datos_formulario['total'])
-                    page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                    page.set_form_field_value("direccionSucursal", datos_formulario['direccionSucursal'])
-                    page.set_form_field_value("observacion", datos_formulario['observacion'])
-                    page.set_form_field_value("placa", datos_formulario['placa'])
-                    page.set_form_field_value("hash", datos_formulario['hash'])
-                    page.set_form_field_value("ruc", datos_formulario['ruc'])
+                            if datos_formulario['comentario'] != '0':
+                                observacion = datos_formulario['comentario']
+                            else:
+                                observacion = datos_formulario['observacion'],
+                            # Rellenar los campos del formulario en la copia
+                            data_dict = {
+                                form_fields[2]: datos_formulario['doc'],
+                                form_fields[0]: datos_formulario['nombre'],
+                                form_fields[3]: datos_formulario['fecha'],
+                                form_fields[23]: datos_formulario['documento'],
+                                form_fields[1]: datos_formulario['direccion'],
+                                form_fields[4]: datos_formulario['forma_pago'],
+                                form_fields[6]: datos_formulario['item'],
+                                form_fields[8]: datos_formulario['codigo'],
+                                form_fields[7]: datos_formulario['descripcion'],
+                                form_fields[5]: datos_formulario['und'],
+                                form_fields[9]: datos_formulario['cantidad'],
+                                form_fields[10]: datos_formulario['vUnitario'],
+                                form_fields[11]: datos_formulario['pUnitario'],
+                                form_fields[12]: datos_formulario['valorV'],
+                                form_fields[21]: datos_formulario['numeroTexto'],
+                                form_fields[14]: datos_formulario['opGravada'],
+                                form_fields[15]: datos_formulario['igv'],
+                                form_fields[13]: datos_formulario['total'],
+                                form_fields[16]: datos_formulario['observacionesSunat'],
+                                form_fields[18]: datos_formulario['direccionSucursal'],
+                                form_fields[17]: observacion,
+                                form_fields[19]: datos_formulario['placa'],
+                                form_fields[20]: datos_formulario['hash'],
+                                form_fields[22]: datos_formulario['ruc']
+                            }
+                            
+                    case '03':
+                        data_dict = {
+                            form_fields[13]: datos_formulario['doc'],
+                            form_fields[0]: datos_formulario['nombre'],
+                            form_fields[21]: datos_formulario['fecha'],
+                            form_fields[1]: datos_formulario['documento'],
+                            form_fields[2]: datos_formulario['item'],
+                            form_fields[3]: datos_formulario['codigo'],
+                            form_fields[4]: datos_formulario['descripcion'],
+                            form_fields[5]: datos_formulario['und'],
+                            form_fields[6]: datos_formulario['cantidad'],
+                            form_fields[8]: datos_formulario['vUnitario'],
+                            form_fields[7]: datos_formulario['pUnitario'],
+                            form_fields[10]: datos_formulario['valorV'],
+                            form_fields[18]: datos_formulario['numeroTexto'],
+                            form_fields[9]: datos_formulario['opGravada'],
+                            form_fields[12]: datos_formulario['igv'],
+                            form_fields[11]: datos_formulario['total'],
+                            form_fields[14]: datos_formulario['observacionesSunat'],
+                            form_fields[15]: datos_formulario['direccionSucursal'],
+                            form_fields[16]: datos_formulario['observacion'],
+                            form_fields[17]: datos_formulario['placa'],
+                            form_fields[19]: datos_formulario['hash'],
+                            form_fields[20]: datos_formulario['ruc'],
+                        }
+                    case '07':
+                        data_dict = {
+                            form_fields[13]: datos_formulario['doc'],
+                            form_fields[0]: datos_formulario['nombre'],
+                            form_fields[18]: datos_formulario['fecha'],
+                            form_fields[21]: datos_formulario['documento'],
+                            form_fields[1]: datos_formulario['direccion'],
+                            form_fields[19]: datos_formulario['documento_referencia'],
+                            form_fields[2]: datos_formulario['item'],
+                            form_fields[3]: datos_formulario['codigo'],
+                            form_fields[4]: datos_formulario['descripcion'],
+                            form_fields[5]: datos_formulario['und'],
+                            form_fields[6]: datos_formulario['cantidad'],
+                            form_fields[8]: datos_formulario['vUnitario'],
+                            form_fields[7]: datos_formulario['pUnitario'],
+                            form_fields[10]: datos_formulario['valorV'],
+                            form_fields[20]: datos_formulario['numeroTexto'],
+                            form_fields[9]: datos_formulario['opGravada'],
+                            form_fields[12]: datos_formulario['igv'],
+                            form_fields[11]: datos_formulario['total'],
+                            form_fields[14]: datos_formulario['observacionesSunat'],
+                            form_fields[15]: datos_formulario['motivo'],
+                            form_fields[16]: datos_formulario['hash'],
+                            form_fields[17]: datos_formulario['ruc'],
+                        }
+                    case '08':
+                        data_dict = {
+                            form_fields[13]: datos_formulario['doc'],
+                            form_fields[0]: datos_formulario['nombre'],
+                            form_fields[18]: datos_formulario['fecha'],
+                            form_fields[21]: datos_formulario['documento'],
+                            form_fields[1]: datos_formulario['direccion'],
+                            form_fields[19]: datos_formulario['documento_referencia'],
+                            form_fields[2]: datos_formulario['item'],
+                            form_fields[3]: datos_formulario['codigo'],
+                            form_fields[4]: datos_formulario['descripcion'],
+                            form_fields[5]: datos_formulario['und'],
+                            form_fields[6]: datos_formulario['cantidad'],
+                            form_fields[8]: datos_formulario['vUnitario'],
+                            form_fields[7]: datos_formulario['pUnitario'],
+                            form_fields[10]: datos_formulario['valorV'],
+                            form_fields[20]: datos_formulario['numeroTexto'],
+                            form_fields[9]: datos_formulario['opGravada'],
+                            form_fields[12]: datos_formulario['igv'],
+                            form_fields[11]: datos_formulario['total'],
+                            form_fields[14]: datos_formulario['observacionesSunat'],
+                            form_fields[15]: datos_formulario['motivo'],
+                            form_fields[16]: datos_formulario['hash'],
+                            form_fields[17]: datos_formulario['ruc']
+                        }
                 
-                case '07':
-                    page.set_form_field_value("doc", datos_formulario['doc'])
-                    page.set_form_field_value("nombre", datos_formulario['nombre'])
-                    page.set_form_field_value("fecha", datos_formulario['fecha'])
-                    page.set_form_field_value("documento", datos_formulario['documento'])
-                    page.set_form_field_value("direccion", datos_formulario['direccion'])
-                    page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
-                    page.set_form_field_value("item", datos_formulario['item'])
-                    page.set_form_field_value("codigo", datos_formulario['codigo'])
-                    page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                    page.set_form_field_value("und", datos_formulario['und'])
-                    page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                    page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                    page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                    page.set_form_field_value("valorV", datos_formulario['valorV'])
-                    page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                    page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                    page.set_form_field_value("igv", datos_formulario['igv'])
-                    page.set_form_field_value("total", datos_formulario['total'])
-                    page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                    page.set_form_field_value("motivo", datos_formulario['motivo'])
-                    page.set_form_field_value("hash", datos_formulario['hash'])
-                    page.set_form_field_value("ruc", datos_formulario['ruc'])
+                # Guardar el PDF rellenado
+                fillpdfs.write_fillable_pdf( input_pdf_path= f'./plantillas/{plantilla}', output_pdf_path=archivo_destino, data_dict=data_dict, flatten=True)
                 
-                case '08':
-                    page.set_form_field_value("doc", datos_formulario['doc'])
-                    page.set_form_field_value("nombre", datos_formulario['nombre'])
-                    page.set_form_field_value("fecha", datos_formulario['fecha'])
-                    page.set_form_field_value("documento", datos_formulario['documento'])
-                    page.set_form_field_value("direccion", datos_formulario['direccion'])
-                    page.set_form_field_value("documento_referencia", datos_formulario['documento_referencia'])
-                    page.set_form_field_value("item", datos_formulario['item'])
-                    page.set_form_field_value("codigo", datos_formulario['codigo'])
-                    page.set_form_field_value("descripcion", datos_formulario['descripcion'])
-                    page.set_form_field_value("und", datos_formulario['und'])
-                    page.set_form_field_value("cantidad", datos_formulario['cantidad'])
-                    page.set_form_field_value("vUnitario", datos_formulario['vUnitario'])
-                    page.set_form_field_value("pUnitario", datos_formulario['pUnitario'])
-                    page.set_form_field_value("valorV", datos_formulario['valorV'])
-                    page.set_form_field_value("numeroTexto", datos_formulario['numeroTexto'])
-                    page.set_form_field_value("opGravada", datos_formulario['opGravada'])
-                    page.set_form_field_value("igv", datos_formulario['igv'])
-                    page.set_form_field_value("total", datos_formulario['total'])
-                    page.set_form_field_value("observacionesSunat", datos_formulario['observacionesSunat'])
-                    page.set_form_field_value("motivo", datos_formulario['motivo'])
-                    page.set_form_field_value("hash", datos_formulario['hash'])
-                    page.set_form_field_value("ruc", datos_formulario['ruc'])
-            
-            # Guardar el PDF rellenado
-            with open(archivo_destino, "wb") as pdf_file_handle:
-                PDF.dumps(pdf_file_handle, doc)
         except Exception as e:
             print(f"Error en el archivo: {nombreArchivo}")
             print(e)
@@ -423,35 +482,41 @@ class Xml_a_pdf:
         # es nota de debito o credito
         discrepancy_response = root.find('cac:DiscrepancyResponse', namespaces)
         tipoDoc = root.find('cbc:InvoiceTypeCode', namespaces)
-
-        # Comprobar si el elemento existe
-        if discrepancy_response is not None:
-            # Buscar el elemento ResponseCode dentro del nodo DiscrepancyResponse
-            response_code = root.find('cac:DiscrepancyResponse//cbc:ResponseCode', namespaces)
-            # Acceder al atributo listName
-            list_name = response_code.attrib.get('listName')
-            print(f"listName: {list_name}")
-            if list_name in ['Tipo de nota de debito', 'Tipo de nota de débito']:
-                # Asignar el tipo de documento para el procesado
-                tipoDoc = '08'
-            elif list_name in ['Tipo de nota de credito', 'Tipo de nota de crédito']:
-                tipoDoc = '07'
-        if tipoDoc is not None:
-            tipoDoc = tipoDoc.text
-        else:    
-            tipoDoc = root.find('.//cbc:DocumentTypeCode', namespaces).text
-            
-        match tipoDoc:
-            case '01':
-                self.procesar_factura(root, archivo)
-            case '03':
-                self.procesar_boleta(root, archivo)
-            case '07':
-                self.procesar_nota_credito(root, archivo)
-            case '08':
-                self.procesar_nota_debito(root, archivo)
         
-        return tipoDoc
+        try:
+
+            # Comprobar si el elemento existe
+            if discrepancy_response is not None:
+                # Buscar el elemento ResponseCode dentro del nodo DiscrepancyResponse
+                response_code = root.find('cac:DiscrepancyResponse//cbc:ResponseCode', namespaces)
+                # Acceder al atributo listName
+                list_name = response_code.attrib.get('listName')
+                print(f"listName: {list_name}")
+                if list_name in ['Tipo de nota de debito', 'Tipo de nota de débito']:
+                    # Asignar el tipo de documento para el procesado
+                    tipoDoc = '08'
+                elif list_name in ['Tipo de nota de credito', 'Tipo de nota de crédito']:
+                    tipoDoc = '07'
+            if tipoDoc is not None:
+                tipoDoc = tipoDoc.text
+            else:    
+                tipoDoc = root.find('.//cbc:DocumentTypeCode', namespaces).text
+                
+            match tipoDoc:
+                case '01':
+                    self.procesar_factura(root, archivo)
+                case '03':
+                    self.procesar_boleta(root, archivo)
+                case '07':
+                    self.procesar_nota_credito(root, archivo)
+                case '08':
+                    self.procesar_nota_debito(root, archivo)
+            
+            return tipoDoc
+    
+        except Exception as e:
+            print(f"Ocurrio un error al leer el archivo {archivo}")
+            self.errores.append(archivo)
     
     def procesar_nota_debito(self, root, archivo):
         # Definir el namespace para cbc y cac
@@ -508,7 +573,8 @@ class Xml_a_pdf:
         print(item)
 
         ## Código
-        codigo = root.find('.//cac:DebitNoteLine//cac:Item//cbc:ID', namespaces).text
+        codigo = root.find('.//cac:DebitNoteLine//cac:Item//cbc:ID', namespaces)
+        codigo = codigo.text if codigo is not None else item
         print(codigo)
 
         ## Descripción
@@ -554,7 +620,10 @@ class Xml_a_pdf:
         print(f'total: {total}')
 
         # Numero en texto
-        numeroTexto = root.find('cbc:Note', namespaces).text
+        # Numero en texto
+        numeroTexto = root.find('cbc:Note', namespaces)
+        
+        numeroTexto = numeroTexto.text if numeroTexto is not None else self.numerosTexto.get(total)
 
         # Observaciones
         ## Invocar función para cargar el archivo con las observaciones, caso que no esté
@@ -565,7 +634,8 @@ class Xml_a_pdf:
         print(f'observaciones: {observaciones}')
         
         # R.U.C
-        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces).text
+        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces)
+        ruc = ruc.text if ruc is not None else '20517252558'
         ruc = f'{ruc}-{doc}'
         
         self.datos_formulario = {'fecha': fechaEmision, 'nombre': nombre, 'doc': doc, 'documento': documento, 'direccion': direccion, 'motivo': motivo, 'documento_referencia': documento_referencia, 'item': item, 'codigo': codigo, 
@@ -628,7 +698,8 @@ class Xml_a_pdf:
         print(item)
 
         ## Código
-        codigo = root.find('.//cac:CreditNoteLine//cac:Item//cbc:ID', namespaces).text
+        codigo = root.find('.//cac:CreditNoteLine//cac:Item//cbc:ID', namespaces)
+        codigo = codigo.text if codigo is not None else item
         print(codigo)
 
         ## Descripción
@@ -674,7 +745,10 @@ class Xml_a_pdf:
         print(f'total: {total}')
 
         # Numero en texto
-        numeroTexto = root.find('cbc:Note', namespaces).text
+        # Numero en texto
+        numeroTexto = root.find('cbc:Note', namespaces)
+        
+        numeroTexto = numeroTexto.text if numeroTexto is not None else self.numerosTexto.get(total)
 
         # Observaciones
         ## Invocar función para cargar el archivo con las observaciones, caso que no esté
@@ -685,7 +759,8 @@ class Xml_a_pdf:
         print(f'observaciones: {observaciones}')
         
         # R.U.C
-        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces).text
+        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces)
+        ruc = ruc.text if ruc is not None else '20517252558'
         ruc = f'{ruc}-{doc}'
         
         self.datos_formulario = {'fecha': fechaEmision, 'nombre': nombre, 'doc': doc, 'documento': documento, 'direccion': direccion, 'motivo': motivo, 'documento_referencia': documento_referencia, 'item': item, 'codigo': codigo, 
@@ -736,7 +811,8 @@ class Xml_a_pdf:
         print(f'direccion: {direccion}')
         
         # Forma de pago
-        forma_pago = root.find('cac:PaymentTerms//cbc:PaymentMeansID', namespaces).text
+        forma_pago = root.find('cac:PaymentTerms//cbc:PaymentMeansID', namespaces)
+        forma_pago = forma_pago.text if forma_pago is not None else "Contado"
         print(f'forma_pago: {forma_pago}')
         
         # Items
@@ -745,7 +821,8 @@ class Xml_a_pdf:
         print(item)
 
         ## Código
-        codigo = root.find('.//cac:InvoiceLine//cac:Item//cbc:ID', namespaces).text
+        codigo = root.find('.//cac:InvoiceLine//cac:Item//cbc:ID', namespaces)
+        codigo = codigo.text if codigo is not None else item
         print(codigo)
 
         ## Descripción
@@ -790,7 +867,9 @@ class Xml_a_pdf:
         print(f'total: {total}')
 
         # Numero en texto
-        numeroTexto = root.find('cbc:Note', namespaces).text
+        numeroTexto = root.find('cbc:Note', namespaces)
+        
+        numeroTexto = numeroTexto.text if numeroTexto is not None else self.numerosTexto.get(total)
 
         # Observaciones
         ## Invocar función para cargar el archivo con las observaciones, caso que no esté
@@ -846,7 +925,8 @@ class Xml_a_pdf:
         print(f'nota_detracciones: {nota_detracciones}')
         
         # R.U.C
-        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces).text
+        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces)
+        ruc = ruc.text if ruc is not None else '20517252558'
         ruc = f'{ruc}-{doc}'
         
         self.datos_formulario = {'fecha': fechaEmision, 'nombre': nombre, 'doc': doc, 'documento': documento, 'direccion': direccion, 'forma_pago': forma_pago, 'item': item, 'codigo': codigo, 
@@ -908,7 +988,8 @@ class Xml_a_pdf:
         print(item)
 
         ## Código
-        codigo = root.find('.//cac:InvoiceLine//cac:Item//cbc:ID', namespaces).text
+        codigo = root.find('.//cac:InvoiceLine//cac:Item//cbc:ID', namespaces)
+        codigo = codigo.text if codigo is not None else item
         print(codigo)
 
         ## Descripción
@@ -953,7 +1034,10 @@ class Xml_a_pdf:
         print(f'total: {total}')
 
         # Numero en texto
-        numeroTexto = root.find('cbc:Note', namespaces).text
+        # Numero en texto
+        numeroTexto = root.find('cbc:Note', namespaces)
+        
+        numeroTexto = numeroTexto.text if numeroTexto is not None else self.numerosTexto.get(total)
 
         # Observaciones
         ## Invocar función para cargar el archivo con las observaciones, caso que no esté
@@ -994,7 +1078,8 @@ class Xml_a_pdf:
         print(observacion)
         
         # R.U.C
-        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces).text
+        ruc = root.find('cac:Signature//cac:SignatoryParty//cbc:ID', namespaces)
+        ruc = ruc.text if ruc is not None else '20517252558'
         ruc = f'{ruc}-{doc}'
         
         self.datos_formulario = {'fecha': fechaEmision, 'nombre': nombre, 'doc': doc, 'documento': documento, 'direccion': direccion, 'item': item, 'codigo': codigo, 
@@ -1018,7 +1103,7 @@ class Xml_a_pdf:
             print(f"Archivo XML encontrado y cargado: {ruta_completa_archivoR}")
             return treeR
         except FileNotFoundError:
-            print(f"No se encontró el archivo XML en {ruta_completa_archivoR}, buscando archivo comprimido...")
+            print(f"No se encontró el archivo XML en {ruta_completa_archivoR}, buscando archivo xml...")
 
             # Si no se encuentra el archivo XML, buscar un archivo comprimido en la misma carpeta
             archivo_zip = carpeta_base / f"{archivoR}.zip"
@@ -1096,7 +1181,7 @@ class Xml_a_pdf:
         
         # Cerrar la ventana
         ventana.destroy()
-
+        
 # Iniciar programa                
                 
 root = Tk()
