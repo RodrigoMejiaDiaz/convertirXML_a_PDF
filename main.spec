@@ -8,7 +8,8 @@ a = Analysis(
     datas=[
         ('main.py','main.py'),
         ('.env','.'),
-        ('actualizar.py', 'actualizar.py')
+        ('actualizar.py', 'actualizar.py'),
+        ('version.txt', '.')
     ],
     hiddenimports=[],
     hookspath=[],
