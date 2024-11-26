@@ -13,3 +13,4 @@ xml
 .env
 build
 dist
+__pycache__
