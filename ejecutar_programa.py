@@ -1,9 +1,9 @@
 from tkinter import Tk
-from main import Main  # Asegúrate de que 'main' es el nombre del archivo de tu clase
+from main import Xml_a_pdf  # Asegúrate de que '' es el nombre del archivo de tu clase
 
 def start_program():
     root = Tk()
-    Main(root)
+    Xml_a_pdf(root)
     root.mainloop()
 
 if __name__ == "__main__":
