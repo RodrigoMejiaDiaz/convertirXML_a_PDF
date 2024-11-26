@@ -10,3 +10,6 @@ mi_entorno
 fillpdf
 entorno
 xml
+.env
+build
+dist

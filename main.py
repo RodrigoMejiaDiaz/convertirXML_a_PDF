@@ -178,7 +178,7 @@ class Xml_a_pdf:
         # Preguntar al usuario si quiere seleccionar una carpeta o archivos
         opcion = messagebox.askquestion(
             "Seleccionar",
-            "¿Deseas seleccionar XML de una carpeta o archivos separados?",
+            "¿Deseas seleccionar una carpeta entera?",
             icon="question"
         )
         
@@ -1202,8 +1202,3 @@ class Xml_a_pdf:
         # Cerrar la ventana
         ventana.destroy()
         
-# Iniciar programa                
-                
-root = Tk()
-Xml_a_pdf(root)
-root.mainloop()
